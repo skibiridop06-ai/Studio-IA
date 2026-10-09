@@ -1,0 +1,14 @@
+diff --git a/node_modules/onnxruntime-react-native/android/build.gradle b/node_modules/onnxruntime-react-native/android/build.gradle
+index 41b4359..1a8b943 100644
+--- a/node_modules/onnxruntime-react-native/android/build.gradle
++++ b/node_modules/onnxruntime-react-native/android/build.gradle
+@@ -247,7 +247,8 @@ dependencies {
+     extractLibs "com.microsoft.onnxruntime:onnxruntime-android:latest.integration@aar"
+   }
+ 
+-  if (VersionNumber.parse(REACT_NATIVE_VERSION) < VersionNumber.parse("0.71")) {
++  // Gradle 9 removeu VersionNumber; o projeto usa RN >= 0.71, então os headers do fbjni não são necessários
++  if (false) {
+     extractLibs "com.facebook.fbjni:fbjni:+:headers"
+     extractLibs "com.facebook.fbjni:fbjni:+"
+   }
