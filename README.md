@@ -8,26 +8,23 @@ Skia na GPU para o preview, FFmpeg para cortes/export e ONNX Runtime para IA no 
 ```bash
 npm install
 npx expo install --fix          # alinha versões nativas com o SDK
-npm run models                  # baixa o U²-Netp (remoção de fundo)
-python scripts/export_realesrgan.py   # opcional: gera o modelo de super-resolução
 npm run prebuild
 npm run android   # ou: npm run ios
 ```
 
-Não roda no Expo Go: Skia, FFmpeg e ONNX são módulos nativos, então é preciso um
-development build (`expo-dev-client`).
+Não roda no Expo Go: Skia, FFmpeg e ONNX são módulos nativos. Os modelos ONNX já
+vêm em `assets/models` (para regenerar: `npm run models` e `scripts/export_realesrgan.py`).
 
-## FFmpeg: atenção
+## Baixar o APK
 
-O projeto oficial `ffmpeg-kit` foi descontinuado em 2025 e os binários pré-compilados
-saíram do Maven/CocoaPods, então `ffmpeg-kit-react-native@6.0.2` instala mas o build
-nativo falha. Opções:
+Cada envio para o branch `main` dispara o workflow **Gerar APK** (GitHub Actions), que
+compila o app e publica o `app-release.apk` na aba **Releases**. Dá para acompanhar as
+atualizações pelo Obtainium apontando para este repositório.
 
-1. Usar um fork mantido com a mesma API (há vários no npm sob `*/ffmpeg-kit-react-native`)
-   via alias: `"ffmpeg-kit-react-native": "npm:<fork>@<versão>"`. Confira se o fork
-   publica binários e se a licença (LGPL/GPL) é compatível com o seu app.
-2. Compilar o ffmpeg-kit a partir do código-fonte e apontar o pod/aar local.
+## FFmpeg
 
+O `ffmpeg-kit` original foi descontinuado em 2025. O projeto usa o fork
+`@wokcito/ffmpeg-kit-react-native` (mesma API, binários Android no Maven Central).
 Todo o acesso ao FFmpeg está isolado em `src/engine/ffmpegEngine.ts`.
 
 ## Estrutura

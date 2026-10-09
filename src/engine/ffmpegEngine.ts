@@ -23,9 +23,9 @@
  *  Tudo roda via `FFmpegKit.executeWithArgumentsAsync`: argumentos em array →
  *  nenhum problema de escape com espaços/aspas em caminhos de arquivo.
  *
- *  ⚠ ffmpeg-kit foi descontinuado pelo autor em 2025. A API abaixo é idêntica à
- *  dos forks mantidos pela comunidade / build próprio. Toda a dependência está
- *  isolada neste arquivo — trocar o binding significa mexer só aqui.
+ *  ⚠ O ffmpeg-kit original foi descontinuado em 2025. Usamos o fork
+ *  @wokcito/ffmpeg-kit-react-native (mesma API; binários Android no Maven
+ *  Central, páginas de 16 KB). Toda a dependência está isolada neste arquivo.
  */
 import { Platform } from 'react-native';
 import {
@@ -35,7 +35,7 @@ import {
   type FFmpegSession,
   type Log,
   type Statistics,
-} from 'ffmpeg-kit-react-native';
+} from '@wokcito/ffmpeg-kit-react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import type { ColorAdjust, StickerLayer } from '../store/editorStore';
 

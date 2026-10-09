@@ -7,7 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#09090B",
-    "splash": { "backgroundColor": "#09090B", "resizeMode": "contain", "image": "./assets/icon.png" },
+    "splash": {
+      "backgroundColor": "#09090B",
+      "resizeMode": "contain",
+      "image": "./assets/icon.png"
+    },
     "ios": {
       "bundleIdentifier": "com.studioia.app",
       "supportsTablet": false,
@@ -18,13 +22,33 @@
     },
     "android": {
       "package": "com.studioia.app",
-      "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#09090B" }
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#09090B"
+      }
     },
     "plugins": [
+      "onnxruntime-react-native",
       "expo-asset",
       "expo-image-picker",
-      ["expo-media-library", { "savePhotosPermission": "Para salvar seus vídeos exportados.", "isAccessMediaLocationEnabled": false }],
-      ["expo-build-properties", { "ios": { "deploymentTarget": "15.1" }, "android": { "minSdkVersion": 26 } }]
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Para salvar seus vídeos exportados.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          },
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ]
   }
 }
