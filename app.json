@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Studio IA",
+    "slug": "studio-ia",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#09090B",
+    "splash": { "backgroundColor": "#09090B", "resizeMode": "contain", "image": "./assets/icon.png" },
+    "ios": {
+      "bundleIdentifier": "com.studioia.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Para importar fotos e vídeos para editar.",
+        "NSPhotoLibraryAddUsageDescription": "Para salvar seus vídeos exportados."
+      }
+    },
+    "android": {
+      "package": "com.studioia.app",
+      "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#09090B" }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-image-picker",
+      ["expo-media-library", { "savePhotosPermission": "Para salvar seus vídeos exportados.", "isAccessMediaLocationEnabled": false }],
+      ["expo-build-properties", { "ios": { "deploymentTarget": "15.1" }, "android": { "minSdkVersion": 26 } }]
+    ]
+  }
+}

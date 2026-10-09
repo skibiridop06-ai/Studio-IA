@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+dist/
+web-build/
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+.env*
+assets/models/*.onnx
+assets/models/*.pth
+npm-debug.*
+.DS_Store
