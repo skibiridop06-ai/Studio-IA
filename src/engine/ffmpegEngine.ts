@@ -37,7 +37,10 @@ import {
   type Statistics,
 } from '@wokcito/ffmpeg-kit-react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-import type { ColorAdjust, StickerLayer } from '../store/editorStore';
+import { ASPECT_RATIO, type Aspect, type ColorAdjust, type StickerLayer } from '../store/editorStore';
+import { RESOLUTIONS, type Resolution } from '../theme';
+import type { Effect } from './effectsData';
+import { buildExportArgs, targetSize } from './exportGraph';
 
 // ───────────────────────────── Tipos públicos ───────────────────────────────
 
@@ -418,11 +421,9 @@ export async function syncToViralReference(
 // ───────────────────────────── Export final (composição) ────────────────────
 
 /**
- * Exporta o projeto: aplica ajustes de cor e "queima" as figurinhas no vídeo.
- *
- * O preview usa Skia (GPU) e o export usa FFmpeg (CPU/HW encoder). Para os dois
- * baterem pixel a pixel, convertemos as coordenadas do preview para o espaço de
- * saída com um único fator `k = outW / previewW` e usamos o MESMO pivô (centro).
+ * Exporta o projeto (vídeo MP4 ou foto PNG) aplicando formato, cor, efeito e
+ * camadas. O grafo é montado em exportGraph.ts (código puro, testado contra o
+ * FFmpeg real). Preview (Skia) e export usam o mesmo fator k = saída/preview.
  */
 export async function exportProject(params: {
   mediaUri: string;
@@ -431,53 +432,45 @@ export async function exportProject(params: {
   preview: { w: number; h: number };
   target: { w: number; h: number; bitrate: string };
   adjust: ColorAdjust;
+  effect: Effect;
   stickers: StickerLayer[];
+  asPhoto?: boolean;
   onProgress?: ProgressFn;
 }): Promise<string> {
-  const { mediaUri, mediaKind, durationMs, preview, target, adjust, stickers, onProgress } = params;
+  const { mediaUri, mediaKind, durationMs, preview, target, adjust, effect, stickers, onProgress } = params;
+  const asPhoto = !!params.asPhoto;
   await ensureWorkDir();
-  const out = `${WORK_DIR}export_${Date.now()}.mp4`;
-  const k = target.w / preview.w;
+  const out = `${WORK_DIR}export_${Date.now()}.${asPhoto ? 'png' : 'mp4'}`;
+  const hasAudio = mediaKind === 'video' ? (await probe(mediaUri)).hasAudio : false;
 
-  const inputs: string[] = mediaKind === 'image' ? ['-loop', '1', '-t', sec(durationMs), '-i', toPath(mediaUri)] : ['-i', toPath(mediaUri)];
-  const ordered = [...stickers].sort((a, b) => a.zIndex - b.zIndex);
-  ordered.forEach((s) => inputs.push('-loop', '1', '-i', toPath(s.uri)));
-
-  const b = (adjust.brightness / 100) * 0.25;
-  const c = 1 + adjust.contrast / 100;
-  const sat = 1 + adjust.saturation / 100;
-  const temp = adjust.temperature / 100;
-  const graph: string[] = [
-    `[0:v]scale=${target.w}:${target.h}:force_original_aspect_ratio=increase,crop=${target.w}:${target.h},setsar=1,` +
-      `eq=brightness=${b.toFixed(3)}:contrast=${c.toFixed(3)}:saturation=${sat.toFixed(3)},` +
-      `colorbalance=rm=${(temp * 0.15).toFixed(3)}:bm=${(-temp * 0.15).toFixed(3)},format=yuv420p[base0]`,
-  ];
-
-  ordered.forEach((s, i) => {
-    const w = Math.max(2, Math.round(s.width * s.scale * k));
-    const cx = Math.round(target.w / 2 + s.x * k);
-    const cy = Math.round(target.h / 2 + s.y * k);
-    const a = s.rotation.toFixed(5);
-    graph.push(
-      `[${i + 1}:v]format=rgba,scale=${w}:-1,rotate=${a}:c=none:ow=rotw(${a}):oh=roth(${a})[sk${i}]`,
-      `[base${i}][sk${i}]overlay=x=${cx}-overlay_w/2:y=${cy}-overlay_h/2:` +
-        `enable='between(t\\,${sec(s.startMs)}\\,${sec(s.endMs)})':shortest=1[base${i + 1}]`,
-    );
+  const { pre, post } = buildExportArgs({
+    mediaPath: toPath(mediaUri),
+    mediaKind,
+    durationMs,
+    preview,
+    target,
+    adjust,
+    effect,
+    layers: stickers.map((s) => ({ ...s, uri: toPath(s.uri) })),
+    asPhoto,
+    outPath: toPath(out),
+    hasAudio,
   });
 
-  const args = [
-    '-y', '-hide_banner',
-    ...inputs,
-    '-filter_complex', graph.join(';'),
-    '-map', `[base${ordered.length}]`,
-    ...(mediaKind === 'video' ? ['-map', '0:a?', '-c:a', 'aac', '-b:a', '192k'] : []),
-    ...videoEncoderArgs(target.bitrate),
-    '-t', sec(durationMs),
-    '-movflags', '+faststart',
-    toPath(out),
-  ];
-  await runWithEncoderFallback(args, 'export', durationMs, onProgress);
+  if (asPhoto) {
+    await run([...pre, ...post], 'export-photo');
+    onProgress?.(1, 'export-photo');
+  } else {
+    await runWithEncoderFallback([...pre, ...videoEncoderArgs(target.bitrate), ...post], 'export', durationMs, onProgress);
+  }
   return `file://${toPath(out)}`;
+}
+
+/** Resolução × formato → tamanho e bitrate de saída. */
+export function targetFor(res: Resolution, aspect: Aspect) {
+  const short = { '720P': 720, '1080P': 1080, '4K': 2160 }[res];
+  const { w, h } = targetSize(short, ASPECT_RATIO[aspect]);
+  return { w, h, bitrate: RESOLUTIONS[res].bitrate };
 }
 
 // ───────────────────────────── Encoder com fallback ─────────────────────────

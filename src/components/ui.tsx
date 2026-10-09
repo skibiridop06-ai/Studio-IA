@@ -3,7 +3,7 @@
  * Tudo consome tokens de `theme.ts`.
  */
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -112,47 +112,43 @@ const hs = StyleSheet.create({
 // ───────────────────────────── Toolbox ──────────────────────────────────────
 
 const TOOLS: { id: ToolId; label: string; icon: React.ComponentProps<typeof Feather>['name'] }[] = [
-  { id: 'cut', label: 'Cortar', icon: 'scissors' },
-  { id: 'audio', label: 'Áudio', icon: 'music' },
-  { id: 'text', label: 'Texto', icon: 'type' },
   { id: 'effects', label: 'Efeitos', icon: 'star' },
-  { id: 'filters', label: 'Filtros', icon: 'sliders' },
-  { id: 'ai', label: '✨ IA Local', icon: 'cpu' },
+  { id: 'text', label: 'Texto', icon: 'type' },
+  { id: 'stickers', label: 'Figurinhas', icon: 'smile' },
+  { id: 'filters', label: 'Ajustes', icon: 'sliders' },
+  { id: 'format', label: 'Formato', icon: 'crop' },
+  { id: 'cut', label: 'Corte viral', icon: 'zap' },
+  { id: 'ai', label: 'IA', icon: 'cpu' },
+  { id: 'audio', label: 'Áudio', icon: 'volume-2' },
 ];
 
 export function Toolbox({ active, onPress }: { active: ToolId | null; onPress: (t: ToolId) => void }) {
   return (
-    <View style={ts.row}>
-      {TOOLS.map((t) => {
-        const on = active === t.id;
-        return (
-          <Pressable key={t.id} onPress={() => onPress(t.id)} style={ts.btn}>
-            <View style={[ts.iconWrap, on && ts.iconWrapOn]}>
-              <Feather name={t.icon} size={19} color={on ? COLORS.ACCENT_INK : COLORS.TEXT_PRIMARY} />
-            </View>
-            <Text numberOfLines={1} style={[ts.label, on && { color: COLORS.TEXT_PRIMARY }]}>
-              {t.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+    <View style={ts.wrap}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ts.row}>
+        {TOOLS.map((t) => {
+          const on = active === t.id;
+          return (
+            <Pressable key={t.id} onPress={() => onPress(t.id)} style={ts.btn}>
+              <View style={[ts.iconWrap, on && ts.iconWrapOn]}>
+                <Feather name={t.id === 'audio' && on ? 'volume-x' : t.icon} size={19} color={on ? COLORS.ACCENT_INK : COLORS.TEXT_PRIMARY} />
+              </View>
+              <Text numberOfLines={1} style={[ts.label, on && { color: COLORS.TEXT_PRIMARY }]}>
+                {t.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
 
 const ts = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.sm,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.sm,
-    borderTopWidth: HAIRLINE,
-    borderColor: COLORS.BORDER_COLOR,
-    backgroundColor: COLORS.BACKGROUND_PRINCIPAL,
-  },
-  btn: { flex: 1, alignItems: 'center', gap: 6 },
-  iconWrap: { width: 40, height: 32, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
+  wrap: { borderTopWidth: HAIRLINE, borderColor: COLORS.BORDER_COLOR, backgroundColor: COLORS.BACKGROUND_PRINCIPAL },
+  row: { paddingHorizontal: SPACING.sm, paddingTop: SPACING.md, paddingBottom: SPACING.sm, gap: SPACING.xs },
+  btn: { width: 68, alignItems: 'center', gap: 6 },
+  iconWrap: { width: 42, height: 34, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
   iconWrapOn: { backgroundColor: COLORS.ACCENT_COLOR, ...GLOW },
   label: { ...TYPE.label, fontSize: 10 },
 });

@@ -121,10 +121,11 @@ function TransformableStickerBase({ layer, selected, playheadMs, onSelect, onCom
   // Os três gestos de transformação rodam juntos; o tap só ganha se nada mais ativar.
   const gesture = Gesture.Exclusive(Gesture.Simultaneous(pan, pinch, rotate), tap);
 
+  const layerOpacity = layer.opacity ?? 1;
   const style = useAnimatedStyle(() => {
     const visible = playheadMs.value >= layer.startMs && playheadMs.value <= layer.endMs;
     return {
-      opacity: visible ? 1 : 0,
+      opacity: visible ? layerOpacity : 0,
       transform: [
         { translateX: tx.value },
         { translateY: ty.value },
@@ -148,7 +149,12 @@ function TransformableStickerBase({ layer, selected, playheadMs, onSelect, onCom
           style,
         ]}
       >
-        <Image source={{ uri: layer.uri }} style={StyleSheet.absoluteFill} contentFit="contain" transition={120} />
+        <Image
+          source={{ uri: layer.uri }}
+          style={[StyleSheet.absoluteFill, layer.flipX && { transform: [{ scaleX: -1 }] }]}
+          contentFit="contain"
+          transition={120}
+        />
         <Animated.View pointerEvents="none" style={[styles.frame, frameStyle]} />
       </Animated.View>
     </GestureDetector>

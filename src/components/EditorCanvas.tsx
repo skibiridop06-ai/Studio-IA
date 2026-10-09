@@ -38,11 +38,13 @@ import {
   Rect,
   RadialGradient,
   Group,
+  RuntimeShader,
   useImage,
   useVideo,
   vec,
 } from '@shopify/react-native-skia';
-import { useAnimatedReaction, type SharedValue } from 'react-native-reanimated';
+import { FX_SHADER, fxUniforms, getEffect, needsShader } from '../engine/effects';
+import { useAnimatedReaction, useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { COLORS, RADIUS, HAIRLINE } from '../theme';
 import { useEditor, type ColorAdjust, type StickerLayer } from '../store/editorStore';
 import { TransformableSticker } from './TransformableSticker';
@@ -55,8 +57,6 @@ interface Props {
   seek: SharedValue<number | null>;
   volume: SharedValue<number>;
   isScrubbing: SharedValue<boolean>;
-  blur: number;
-  vignette: boolean;
 }
 
 /**
@@ -81,13 +81,15 @@ export function buildColorMatrix({ brightness, contrast, saturation, temperature
   ];
 }
 
-export function EditorCanvas({ width, height, playheadMs, paused, seek, volume, isScrubbing, blur, vignette }: Props) {
+export function EditorCanvas({ width, height, playheadMs, paused, seek, volume, isScrubbing }: Props) {
   const media = useEditor((s) => s.media);
   const adjust = useEditor((s) => s.adjust);
   const stickers = useEditor((s) => s.stickers);
   const selectedId = useEditor((s) => s.selectedId);
   const select = useEditor((s) => s.select);
   const updateSticker = useEditor((s) => s.updateSticker);
+  const effect = getEffect(useEditor((s) => s.effectId));
+  const { blur, vignette } = effect;
 
   // Hooks Skia não podem ser condicionais: passa null para o que não é usado.
   const video = useVideo(media?.kind === 'video' ? media.uri : null, { paused, seek, volume, looping: true });
@@ -103,6 +105,9 @@ export function EditorCanvas({ width, height, playheadMs, paused, seek, volume, 
   );
 
   const matrix = useMemo(() => buildColorMatrix(adjust), [adjust]);
+  // parte fixa dos uniforms no JS; o tempo entra na UI thread a cada frame
+  const baseUniforms = useMemo(() => fxUniforms(effect, width, height), [effect, width, height]);
+  const uniforms = useDerivedValue(() => ({ ...baseUniforms, time: playheadMs.value / 1000 }), [baseUniforms]);
   const sorted = useMemo<StickerLayer[]>(() => [...stickers].sort((a, b) => a.zIndex - b.zIndex), [stickers]);
 
   return (
@@ -118,7 +123,9 @@ export function EditorCanvas({ width, height, playheadMs, paused, seek, volume, 
             height={height}
             fit="cover"
           >
+            {/* ordem dos filtros = ordem na GPU: cor → efeito (SkSL) → desfoque */}
             <ColorMatrix matrix={matrix} />
+            {needsShader(effect) && <RuntimeShader source={FX_SHADER} uniforms={uniforms} />}
             {blur > 0 && <Blur blur={blur} mode="clamp" />}
           </SkiaImage>
         </Group>

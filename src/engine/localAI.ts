@@ -20,7 +20,7 @@
  *   - iOS     → CoreML (Neural Engine / GPU)
  *   - Android → NNAPI (DSP/GPU/NPU) com fallback para CPU (XNNPACK)
  */
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import type { InferenceSession as OrtSession, Tensor as OrtTensor } from 'onnxruntime-react-native';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -56,6 +56,13 @@ type OrtModule = typeof import('onnxruntime-react-native');
 let ortCache: OrtModule | null = null;
 function ort(): OrtModule {
   if (ortCache) return ortCache;
+  // Checa o módulo nativo ANTES do require: se o import do binding falhar, o
+  // Metro reporta como erro fatal global (não dá para capturar com try/catch).
+  if (!NativeModules.Onnxruntime) {
+    throw new Error(
+      'A IA local ainda não é compatível com esta versão do Android. Essa função volta numa próxima atualização.',
+    );
+  }
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod: OrtModule = require('onnxruntime-react-native');
@@ -67,6 +74,9 @@ function ort(): OrtModule {
     throw new Error(`A IA local não está disponível neste aparelho (${(e as Error).message}).`);
   }
 }
+
+/** A IA local pode ser usada neste aparelho/versão? (módulo nativo registrado) */
+export const aiAvailable = () => !!NativeModules.Onnxruntime;
 
 const sessions = new Map<ModelKey, Promise<OrtSession>>();
 

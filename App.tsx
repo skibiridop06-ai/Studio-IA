@@ -57,8 +57,8 @@ function Editor() {
     });
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { EditorScreen } = require('./src/screens/EditorScreen');
-      setState({ Screen: EditorScreen });
+      const { Root } = require('./src/Root');
+      setState({ Screen: Root });
     } catch (error) {
       setState({ error });
     }
