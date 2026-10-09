@@ -21,7 +21,7 @@
  *   - Android → NNAPI (DSP/GPU/NPU) com fallback para CPU (XNNPACK)
  */
 import { Platform } from 'react-native';
-import { InferenceSession, Tensor } from 'onnxruntime-react-native';
+import type { InferenceSession as OrtSession, Tensor as OrtTensor } from 'onnxruntime-react-native';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import {
@@ -46,14 +46,37 @@ const MODELS = {
 } as const;
 type ModelKey = keyof typeof MODELS;
 
-const sessions = new Map<ModelKey, Promise<InferenceSession>>();
+/**
+ * Carregamento PREGUIÇOSO do ONNX Runtime: o módulo instala a ponte JSI no
+ * momento do import. Fazer isso na abertura do app derruba tudo se a ponte
+ * falhar; aqui ele só carrega quando o usuário usa uma função de IA, e uma
+ * falha vira mensagem de erro, não um crash.
+ */
+type OrtModule = typeof import('onnxruntime-react-native');
+let ortCache: OrtModule | null = null;
+function ort(): OrtModule {
+  if (ortCache) return ortCache;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod: OrtModule = require('onnxruntime-react-native');
+    // o binding expõe um Proxy que lança se a instalação JSI falhou
+    if (typeof (globalThis as any).OrtApi === 'undefined') throw new Error('ponte JSI não instalada');
+    ortCache = mod;
+    return mod;
+  } catch (e) {
+    throw new Error(`A IA local não está disponível neste aparelho (${(e as Error).message}).`);
+  }
+}
+
+const sessions = new Map<ModelKey, Promise<OrtSession>>();
 
 /** Carrega (uma vez) e mantém a sessão em memória. Tenta acelerador → CPU. */
-function getSession(key: ModelKey): Promise<InferenceSession> {
+function getSession(key: ModelKey): Promise<OrtSession> {
   const cached = sessions.get(key);
   if (cached) return cached;
 
   const p = (async () => {
+    const { InferenceSession } = ort();
     const asset = Asset.fromModule(MODELS[key]());
     await asset.downloadAsync(); // em produção apenas copia do bundle p/ disco
     const path = (asset.localUri ?? asset.uri).replace(/^file:\/\//, '');
@@ -163,7 +186,8 @@ export async function removeBackground(uri: string, onProgress?: (r: number) => 
   const W = src.width();
   const H = src.height();
   const px = readResized(src, S, S);
-  const input = new Tensor('float32', toNCHW(px, S, S, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]), [1, 3, S, S]);
+  const { Tensor } = ort();
+  const input: OrtTensor = new Tensor('float32', toNCHW(px, S, S, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]), [1, 3, S, S]);
   onProgress?.(0.3);
 
   const outputs = await session.run({ [session.inputNames[0]]: input });
@@ -277,7 +301,7 @@ export async function superResolve(uri: string, onProgress?: (r: number) => void
       const eh = Math.min(H, iy + ih + OV) - ey;
 
       const px = readResized(src, ew, eh, Skia.XYWHRect(ex, ey, ew, eh));
-      const input = new Tensor('float32', toNCHW(px, ew, eh), [1, 3, eh, ew]);
+      const input: OrtTensor = new (ort().Tensor)('float32', toNCHW(px, ew, eh), [1, 3, eh, ew]);
       const res = await session.run({ [session.inputNames[0]]: input });
       const o = res[session.outputNames[0]];
       const [, , OH, OW] = o.dims as number[];

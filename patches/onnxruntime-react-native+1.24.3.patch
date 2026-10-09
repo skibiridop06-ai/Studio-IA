@@ -12,3 +12,19 @@ index 41b4359..1a8b943 100644
      extractLibs "com.facebook.fbjni:fbjni:+:headers"
      extractLibs "com.facebook.fbjni:fbjni:+"
    }
+diff --git a/node_modules/onnxruntime-react-native/android/src/main/java/ai/onnxruntime/reactnative/OnnxruntimeModule.java b/node_modules/onnxruntime-react-native/android/src/main/java/ai/onnxruntime/reactnative/OnnxruntimeModule.java
+index c362e6a..39e6897 100644
+--- a/node_modules/onnxruntime-react-native/android/src/main/java/ai/onnxruntime/reactnative/OnnxruntimeModule.java
++++ b/node_modules/onnxruntime-react-native/android/src/main/java/ai/onnxruntime/reactnative/OnnxruntimeModule.java
+@@ -51,7 +51,10 @@ public class OnnxruntimeModule extends ReactContextBaseJavaModule {
+         (CallInvokerHolderImpl) getReactApplicationContext().getCatalystInstance().getJSCallInvokerHolder();
+       nativeInstall(jsContext.get(), jsCallInvokerHolder);
+       return true;
+-    } catch (Exception e) {
++    } catch (Throwable e) {
++      // Throwable (não só Exception): UnsatisfiedLinkError / falhas no modo bridgeless
++      // não podem derrubar o app — o JS trata a IA como indisponível.
++      android.util.Log.e("Onnxruntime", "install() falhou", e);
+       return false;
+     }
+   }
